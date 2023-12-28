@@ -32,10 +32,14 @@
         <pkg.disabled>true</pkg.disabled>
         <pkg.process-resources.phase>none</pkg.process-resources.phase>
         <pkg.package.phase>none</pkg.package.phase>
+        <pkg.name>TBMQ</pkg.name>
         <pkg.user>thingsboard</pkg.user>
+        <pkg.type>java</pkg.type>
+        <pkg.mainClass>ThingsboardMqttBrokerApplication</pkg.mainClass>
         <pkg.implementationTitle>${project.name}</pkg.implementationTitle>
         <pkg.unixLogFolder>/var/log/${pkg.name}</pkg.unixLogFolder>
         <pkg.installFolder>/usr/share/${pkg.name}</pkg.installFolder>
+        <pkg.copyInstallScripts></pkg.copyInstallScripts>
         <spring-boot.version>2.5.7</spring-boot.version>
         <spring.version>5.3.26</spring.version>
         <spring-security.version>5.7.7</spring-security.version>
