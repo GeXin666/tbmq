@@ -318,7 +318,7 @@ queue:
 
   kafka:
     # List of kafka bootstrap servers used to establish connection
-    bootstrap.servers: "${TB_KAFKA_SERVERS:localhost:9092}"
+    bootstrap.servers: "${TB_KAFKA_SERVERS:192.168.101.4:9092}"
     # Enable/disable deletion of topics for Application MQTT Clients
     enable-topic-deletion: "${TB_KAFKA_ENABLE_TOPIC_DELETION:true}"
     default:
@@ -579,11 +579,11 @@ spring:
     # Database driver for Spring JPA
     driverClassName: "${SPRING_DRIVER_CLASS_NAME:org.postgresql.Driver}"
     # Database connection URL
-    url: "${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/thingsboard_mqtt_broker}"
+    url: "${SPRING_DATASOURCE_URL:jdbc:postgresql://192.168.101.4:5432/thingsboard_mqtt_broker}"
     # Database username
     username: "${SPRING_DATASOURCE_USERNAME:postgres}"
     # Database user password
-    password: "${SPRING_DATASOURCE_PASSWORD:postgres}"
+    password: "${SPRING_DATASOURCE_PASSWORD:china185}"
     hikari:
       # This property allows the number of connections in the pool to increase as demand increases.
       # At the same time, the property ensures that the pool doesn't grow to the point of exhausting a system's resources, which ultimately affects an application's performance and availability
@@ -609,7 +609,7 @@ security:
     auth_strategy: "${SECURITY_MQTT_AUTH_STRATEGY:BOTH}"
     basic:
       # If enabled the server will try to authenticate client with clientId and/or username and/or password
-      enabled: "${SECURITY_MQTT_BASIC_ENABLED:false}"
+      enabled: "${SECURITY_MQTT_BASIC_ENABLED:true}"
     ssl:
       # If enabled the server will try to authenticate client with client certificate chain
       enabled: "${SECURITY_MQTT_SSL_ENABLED:false}"
@@ -791,7 +791,7 @@ redis:
     type: "${REDIS_CONNECTION_TYPE:standalone}"
   standalone:
     # Redis connection host
-    host: "${REDIS_HOST:localhost}"
+    host: "${REDIS_HOST:192.168.101.4}"
     # Redis connection port
     port: "${REDIS_PORT:6379}"
     # Use the default Redis configuration file
