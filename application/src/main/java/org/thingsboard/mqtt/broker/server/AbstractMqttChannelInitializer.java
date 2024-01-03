@@ -46,14 +46,18 @@ public abstract class AbstractMqttChannelInitializer extends ChannelInitializer<
             pipeline.addLast(sslHandler);
         }
 
+        //挂载websocket的编解码器
         constructWsPipeline(ch);
 
+        //挂载mqtt的编解码器
         pipeline.addLast("decoder", new MqttDecoder(getMaxPayloadSize(), getMaxClientIdLength()));
         pipeline.addLast("encoder", MqttEncoder.INSTANCE);
 
+        //创建mqtt业务处理器
         MqttSessionHandler handler = handlerFactory.create(sslHandler);
-
         pipeline.addLast(handler);
+
+        //mqtt连接断开时回调
         ch.closeFuture().addListener(handler);
 
         if (log.isDebugEnabled()) {
@@ -61,6 +65,9 @@ public abstract class AbstractMqttChannelInitializer extends ChannelInitializer<
         }
     }
 
+    /**
+     * 挂载websocket的编解码器
+     */
     protected void constructWsPipeline(SocketChannel ch) {
 
     }

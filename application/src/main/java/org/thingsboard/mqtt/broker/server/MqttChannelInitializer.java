@@ -19,12 +19,16 @@ import io.netty.handler.ssl.SslHandler;
 
 public interface MqttChannelInitializer {
 
+    //mqtt荷载数据最大值
     int getMaxPayloadSize();
 
+    //客户端ID的最大长度
     int getMaxClientIdLength();
 
+    //名称
     String getChannelInitializerName();
 
+    //SSL
     default SslHandler getSslHandler() {
         return null;
     }

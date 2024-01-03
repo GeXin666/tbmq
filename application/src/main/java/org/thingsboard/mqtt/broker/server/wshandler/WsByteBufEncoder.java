@@ -28,7 +28,8 @@ public class WsByteBufEncoder extends MessageToMessageEncoder<ByteBuf> {
     @Override
     protected void encode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
         final BinaryWebSocketFrame binaryWebSocketFrame = new BinaryWebSocketFrame(msg);
-        ReferenceCountUtil.retain(binaryWebSocketFrame);
+        //这里貌似存在内存泄漏问题
+        //ReferenceCountUtil.retain(binaryWebSocketFrame);
         out.add(binaryWebSocketFrame);
     }
 

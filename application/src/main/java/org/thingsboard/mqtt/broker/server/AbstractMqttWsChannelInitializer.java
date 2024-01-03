@@ -45,14 +45,17 @@ public abstract class AbstractMqttWsChannelInitializer extends AbstractMqttChann
     protected void constructWsPipeline(SocketChannel ch) {
         ChannelPipeline pipeline = ch.pipeline();
 
+        //websocket编解码器
         pipeline.addLast(new HttpServerCodec());
         pipeline.addLast(new HttpObjectAggregator(BrokerConstants.WS_MAX_CONTENT_LENGTH));
         pipeline.addLast(new WebSocketServerProtocolHandler(BrokerConstants.WS_PATH, getSubprotocols()));
 
+        //websocket二进制消息处理器
         pipeline.addLast(new WsBinaryFrameHandler());
         pipeline.addLast(new WsContinuationFrameHandler());
         pipeline.addLast(new WsTextFrameHandler());
 
+        //BinaryWebSocketFrame编码器
         pipeline.addLast(new WsByteBufEncoder());
     }
 }
