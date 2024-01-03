@@ -32,7 +32,7 @@
         <pkg.disabled>true</pkg.disabled>
         <pkg.process-resources.phase>none</pkg.process-resources.phase>
         <pkg.package.phase>none</pkg.package.phase>
-        <pkg.name>TBMQ</pkg.name>
+        <pkg.name>thingsboard-mqtt-broker</pkg.name>
         <pkg.user>thingsboard</pkg.user>
         <pkg.type>java</pkg.type>
         <pkg.mainClass>ThingsboardMqttBrokerApplication</pkg.mainClass>
@@ -536,6 +536,8 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.8.1</version>
                     <configuration>
+                        <!-- https://maven.apache.org/plugins/maven-compiler-plugin/examples/set-compiler-release.html -->
+                        <!-- 指定JDK的版本 -->
                         <release>17</release>
                     </configuration>
                 </plugin>
@@ -597,6 +599,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.6.1</version>
                     <executions>
                         <execution>
                             <id>copy-protoc</id>
