@@ -51,6 +51,7 @@ public class ClientMqttActorManagerImpl implements ClientMqttActorManager {
         if (clientActorRef == null) {
             clientActorRef = createRootActor(clientId, isClientIdGenerated);
         }
+        //处理登录请求
         clientActorRef.tellWithHighPriority(sessionInitMsg);
     }
 

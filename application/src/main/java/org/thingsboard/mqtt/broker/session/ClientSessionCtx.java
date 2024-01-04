@@ -33,13 +33,19 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * client-session上下文
+ */
 @Slf4j
 @Getter
 public class ClientSessionCtx implements SessionContext {
 
+    //唯一ID 使用的java-UUID
     private final UUID sessionId;
     private final SslHandler sslHandler;
     private final PubResponseProcessingCtx pubResponseProcessingCtx;
+
+    //mqtt客户端的ID生成器，每个客户端的ID保证唯一性.
     private final MsgIdSequence msgIdSeq = new MsgIdSequence();
     private final AwaitingPubRelPacketsCtx awaitingPubRelPacketsCtx = new AwaitingPubRelPacketsCtx();
     private final ConcurrentMap<Integer, MqttPendingPublish> pendingPublishes = new ConcurrentHashMap<>();

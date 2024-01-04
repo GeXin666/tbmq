@@ -26,10 +26,10 @@ import java.util.List;
 public class WsByteBufEncoder extends MessageToMessageEncoder<ByteBuf> {
 
     @Override
-    protected void encode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
+    protected void encode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) {
         final BinaryWebSocketFrame binaryWebSocketFrame = new BinaryWebSocketFrame(msg);
-        //这里貌似存在内存泄漏问题
-        //ReferenceCountUtil.retain(binaryWebSocketFrame);
+        //这里引用计数器+1，因为父类MessageToMessageEncoder会对ByteBuf进行一次释放。
+        ReferenceCountUtil.retain(binaryWebSocketFrame);
         out.add(binaryWebSocketFrame);
     }
 

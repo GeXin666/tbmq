@@ -38,6 +38,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class DefaultTbActorSystem implements TbActorSystem {
 
+    /**
+     * 线程池
+     * key: "persisted-device-dispatcher" value: ExecutorService
+     * key: "client-dispatcher" value: ExecutorService
+     */
     private final ConcurrentMap<String, Dispatcher> dispatchers = new ConcurrentHashMap<>();
     private final ConcurrentMap<TbActorId, TbActorMailbox> actors = new ConcurrentHashMap<>();
     private final ConcurrentMap<TbActorId, ReentrantLock> actorCreationLocks = new ConcurrentHashMap<>();
@@ -45,7 +50,9 @@ public class DefaultTbActorSystem implements TbActorSystem {
 
     @Getter
     private final TbActorSystemSettings settings;
+
     @Getter
+    //任务调度线程池
     private final ScheduledExecutorService scheduler;
 
     public DefaultTbActorSystem(TbActorSystemSettings settings, ActorStatsManager statsManager) {
@@ -54,6 +61,11 @@ public class DefaultTbActorSystem implements TbActorSystem {
         statsManager.registerActorsStats(actors);
     }
 
+    /**
+     * 创建线程池
+     * @param dispatcherId key
+     * @param executor 线程池
+     */
     @Override
     public void createDispatcher(String dispatcherId, ExecutorService executor) {
         Dispatcher current = dispatchers.putIfAbsent(dispatcherId, new Dispatcher(dispatcherId, executor));
@@ -62,6 +74,10 @@ public class DefaultTbActorSystem implements TbActorSystem {
         }
     }
 
+    /**
+     * 销毁线程池
+     * @param dispatcherId key
+     */
     @Override
     public void destroyDispatcher(String dispatcherId) {
         Dispatcher dispatcher = dispatchers.remove(dispatcherId);

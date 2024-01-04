@@ -63,10 +63,15 @@ public class MqttSessionHandler extends ChannelInboundHandlerAdapter implements 
     private final ClientLogger clientLogger;
     private final RateLimitService rateLimitService;
     private final ClientSessionCtx clientSessionCtx;
+
+    //session-id
     @Getter
     private final UUID sessionId = UUID.randomUUID();
 
+    //mqtt客户端id
     private String clientId;
+
+    //mqtt客户端ip
     private InetSocketAddress address;
 
     public MqttSessionHandler(ClientMqttActorManager clientMqttActorManager, ClientLogger clientLogger,
@@ -88,6 +93,7 @@ public class MqttSessionHandler extends ChannelInboundHandlerAdapter implements 
         }
         clientSessionCtx.setChannel(ctx);
         try {
+            //不是mqtt消息则断开channel
             if (!(msg instanceof MqttMessage)) {
                 log.warn("[{}][{}] Received unknown message", clientId, sessionId);
                 disconnect(new DisconnectReason(DisconnectReasonType.ON_PROTOCOL_ERROR, "Received unknown message"));
@@ -95,6 +101,7 @@ public class MqttSessionHandler extends ChannelInboundHandlerAdapter implements 
             }
 
             MqttMessage message = (MqttMessage) msg;
+            //处理错误格式的mqtt消息
             if (!message.decoderResult().isSuccess()) {
                 log.warn("[{}][{}] Message decoding failed: {}", clientId, sessionId, message.decoderResult().cause().getMessage());
                 if (message.decoderResult().cause() instanceof TooLongFrameException) {
@@ -105,6 +112,7 @@ public class MqttSessionHandler extends ChannelInboundHandlerAdapter implements 
                 return;
             }
 
+            //处理正确格式的mqtt消息
             processMqttMsg(message);
         } finally {
             ReferenceCountUtil.safeRelease(msg);
@@ -118,6 +126,7 @@ public class MqttSessionHandler extends ChannelInboundHandlerAdapter implements 
 
         MqttMessageType msgType = msg.fixedHeader().messageType();
         if (StringUtils.isEmpty(clientId)) {
+            //首次登录初始化Session
             if (msgType == MqttMessageType.CONNECT) {
                 initSession((MqttConnectMessage) msg);
             } else {
@@ -176,20 +185,31 @@ public class MqttSessionHandler extends ChannelInboundHandlerAdapter implements 
     }
 
     private void initSession(MqttConnectMessage connectMessage) {
+        //mqtt客户端ID
         clientId = connectMessage.payload().clientIdentifier();
         boolean isClientIdGenerated = StringUtils.isEmpty(clientId);
         clientId = isClientIdGenerated ? generateClientId() : clientId;
+        //mqtt客户端版本
         clientSessionCtx.setMqttVersion(getMqttVersion(connectMessage));
         clientMqttActorManager.initSession(clientId, isClientIdGenerated, new SessionInitMsg(
+                //客户端上下文
                 clientSessionCtx,
+                //用户名
                 connectMessage.payload().userName(),
+                //用户密码
                 connectMessage.payload().passwordInBytes()));
     }
 
+    /**
+     * 生成客户端ID
+     */
     private String generateClientId() {
         return UUID.randomUUID().toString().replaceAll("-", BrokerConstants.EMPTY_STR);
     }
 
+    /**
+     * 获取mqtt版本
+     */
     private MqttVersion getMqttVersion(MqttConnectMessage connectMessage) {
         var version = (byte) connectMessage.variableHeader().version();
         var protocolName = version > 3 ? BrokerConstants.MQTT_PROTOCOL_NAME : BrokerConstants.MQTT_V_3_1_PROTOCOL_NAME;
@@ -223,6 +243,9 @@ public class MqttSessionHandler extends ChannelInboundHandlerAdapter implements 
         disconnect(new DisconnectReason(DisconnectReasonType.ON_ERROR, exceptionMessage));
     }
 
+    /**
+     * 客户端关闭时会回调此方法
+     */
     @Override
     public void operationComplete(Future<? super Void> future) {
         if (clientId != null) {
@@ -230,12 +253,16 @@ public class MqttSessionHandler extends ChannelInboundHandlerAdapter implements 
         }
     }
 
+    /**
+     * 关闭连接
+     */
     void disconnect(DisconnectReason reason) {
         if (clientId == null) {
             if (log.isDebugEnabled()) {
                 log.debug("[{}] Session wasn't initialized yet, closing channel. Reason - {}.", sessionId, reason);
             }
             try {
+                //不存在客户端ID，说明还没有完成登录动作，直接关闭channel.
                 clientSessionCtx.closeChannel();
             } catch (Exception e) {
                 if (log.isDebugEnabled()) {
@@ -243,14 +270,21 @@ public class MqttSessionHandler extends ChannelInboundHandlerAdapter implements 
                 }
             }
         } else {
+            //发送关闭报文
             disconnect(new MqttDisconnectMsg(sessionId, reason));
         }
     }
 
+    /**
+     * 发送关闭报文
+     */
     void disconnect(MqttDisconnectMsg disconnectMsg) {
         clientMqttActorManager.disconnect(clientId, disconnectMsg);
     }
 
+    /**
+     * 获取客户端ip
+     */
     InetSocketAddress getAddress(ChannelHandlerContext ctx) {
         var address = ctx.channel().attr(ADDRESS).get();
         if (address == null) {

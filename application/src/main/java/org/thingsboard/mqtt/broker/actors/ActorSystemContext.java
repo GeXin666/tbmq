@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 @Getter
 @Component
 @RequiredArgsConstructor
+//系统级别上下文-内含各种服务类
 public class ActorSystemContext {
 
     private final TbActorSystem actorSystem;

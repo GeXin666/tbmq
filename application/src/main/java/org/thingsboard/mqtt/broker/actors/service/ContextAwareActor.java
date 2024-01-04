@@ -26,8 +26,11 @@ import org.thingsboard.mqtt.broker.actors.msg.TbActorMsg;
 @Slf4j
 public abstract class ContextAwareActor extends AbstractTbActor {
 
+    //系统级别上下文-内含各种服务类
     protected final ActorSystemContext systemContext;
+    //时间计算工具类
     private final StopWatch stopWatch;
+    //执行统计服务类
     private final ActorProcessingMetricService actorProcessingMetricService;
 
     public ContextAwareActor(ActorSystemContext systemContext) {
@@ -39,14 +42,18 @@ public abstract class ContextAwareActor extends AbstractTbActor {
 
     @Override
     public boolean process(TbActorMsg msg) {
+        //计时开始
         stopWatch.start();
         try {
             if (!doProcess(msg)) {
                 log.warn("[{}] Unprocessed message: {}!", getActorId(), msg);
             }
         } finally {
+            //计时结束
             stopWatch.stop();
+            //触发统计
             actorProcessingMetricService.logMsgProcessingTime(msg.getMsgType(), stopWatch.getTime());
+            //重新开始
             stopWatch.reset();
         }
         return false;

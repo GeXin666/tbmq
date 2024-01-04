@@ -23,6 +23,7 @@ public class MsgIdSequence {
 
     public int nextMsgId() {
         synchronized (this.msgIdSeq) {
+            //mqtt协议消息ID最大值2字节，超出后从1开始.
             this.msgIdSeq.compareAndSet(0xffff, 1);
             return this.msgIdSeq.getAndIncrement();
         }
@@ -30,6 +31,7 @@ public class MsgIdSequence {
 
     public void updateMsgIdSequence(int lastMsgId) {
         synchronized (this.msgIdSeq) {
+            //不能大于2字节，否则设置为1.
             if (lastMsgId >= 0xffff) {
                 this.msgIdSeq.set(1);
             } else {
