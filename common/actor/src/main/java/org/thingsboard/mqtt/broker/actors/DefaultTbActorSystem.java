@@ -44,8 +44,16 @@ public class DefaultTbActorSystem implements TbActorSystem {
      * key: "client-dispatcher" value: ExecutorService
      */
     private final ConcurrentMap<String, Dispatcher> dispatchers = new ConcurrentHashMap<>();
+
+
     private final ConcurrentMap<TbActorId, TbActorMailbox> actors = new ConcurrentHashMap<>();
+
+    /**
+     * 一个客户端一把锁
+     * kye: 代表mqtt客户端 value:ReentrantLock
+     */
     private final ConcurrentMap<TbActorId, ReentrantLock> actorCreationLocks = new ConcurrentHashMap<>();
+
     private final ConcurrentMap<TbActorId, Set<TbActorId>> parentChildMap = new ConcurrentHashMap<>();
 
     @Getter
@@ -111,16 +119,19 @@ public class DefaultTbActorSystem implements TbActorSystem {
         }
 
         TbActorId actorId = creator.createActorId();
+        //客户端封装对象存储
         TbActorMailbox actorMailbox = actors.get(actorId);
         if (actorMailbox != null) {
             if (log.isDebugEnabled()) {
                 log.debug("Actor with id [{}] is already registered!", actorId);
             }
         } else {
+            //每个客户端一把锁
             Lock actorCreationLock = actorCreationLocks.computeIfAbsent(actorId, id -> new ReentrantLock());
             actorCreationLock.lock();
             try {
                 actorMailbox = actors.get(actorId);
+                //二次判断是否为空
                 if (actorMailbox == null) {
                     if (log.isDebugEnabled()) {
                         log.debug("Creating actor with id [{}]!", actorId);
@@ -133,6 +144,7 @@ public class DefaultTbActorSystem implements TbActorSystem {
                             throw new TbActorNotRegisteredException(parent, "Parent Actor with id [" + parent + "] is not registered!");
                         }
                     }
+                    //创建客户端封装对象
                     TbActorMailbox mailbox = new TbActorMailbox(this, settings, actorId, parentRef, actor, dispatcher);
                     actors.put(actorId, mailbox);
                     mailbox.initActor();
@@ -146,6 +158,7 @@ public class DefaultTbActorSystem implements TbActorSystem {
                     }
                 }
             } finally {
+                //删除锁
                 actorCreationLock.unlock();
                 actorCreationLocks.remove(actorId);
             }
@@ -206,6 +219,7 @@ public class DefaultTbActorSystem implements TbActorSystem {
 
     @Override
     public void stop(TbActorId actorId) {
+        //如果actorId是父级别，则停止全部子节点。
         Set<TbActorId> children = parentChildMap.remove(actorId);
         if (children != null) {
             for (TbActorId child : children) {
@@ -215,6 +229,8 @@ public class DefaultTbActorSystem implements TbActorSystem {
         if (log.isDebugEnabled()) {
             log.debug("Stopping actor with id [{}]!", actorId);
         }
+
+        //删除自身并销毁
         TbActorMailbox mailbox = actors.remove(actorId);
         if (mailbox != null) {
             mailbox.destroy();

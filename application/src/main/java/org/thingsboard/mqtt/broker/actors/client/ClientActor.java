@@ -57,6 +57,9 @@ import org.thingsboard.mqtt.broker.session.DisconnectReasonType;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 封装了mqtt的客户端
+ */
 @Slf4j
 public class ClientActor extends ContextAwareActor {
 
@@ -69,6 +72,7 @@ public class ClientActor extends ContextAwareActor {
     private final ClientLogger clientLogger;
     private final ClientActorConfiguration actorConfiguration;
 
+    //这里包含了客户端channel
     private final ClientActorState state;
     private final ClientActorStats clientActorStats;
 
@@ -91,6 +95,9 @@ public class ClientActor extends ContextAwareActor {
         super.init(ctx);
     }
 
+    /**
+     * 这个方法由线程池去调用,处理具体消息.
+     */
     @Override
     protected boolean doProcess(TbActorMsg msg) {
         if (msg instanceof TimedMsg) {

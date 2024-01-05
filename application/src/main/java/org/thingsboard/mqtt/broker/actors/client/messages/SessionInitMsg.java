@@ -30,8 +30,10 @@ public class SessionInitMsg extends AbstractTimedMsg implements TbActorMsg {
 
     //mqtt客户端上下文
     private final ClientSessionCtx clientSessionCtx;
+
     //用户名
     private final String username;
+
     //密码
     private final byte[] passwordBytes;
 

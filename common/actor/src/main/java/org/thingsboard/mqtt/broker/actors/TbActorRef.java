@@ -20,10 +20,21 @@ import org.thingsboard.mqtt.broker.actors.msg.TbActorMsg;
 
 public interface TbActorRef {
 
+    /**
+     * 获取客户端ID
+     */
     TbActorId getActorId();
 
+    /**
+     * 处理普通优先级消息
+     * @param actorMsg
+     */
     void tell(TbActorMsg actorMsg);
 
+    /**
+     * 处理高优先级消息
+     * @param actorMsg
+     */
     void tellWithHighPriority(TbActorMsg actorMsg);
 
 }

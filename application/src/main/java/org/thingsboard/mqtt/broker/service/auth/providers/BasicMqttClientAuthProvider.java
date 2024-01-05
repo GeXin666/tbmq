@@ -66,6 +66,9 @@ public class BasicMqttClientAuthProvider implements MqttClientAuthProvider {
         this.hashFunction = Hashing.sha256();
     }
 
+    /**
+     * 通过账号密码认证
+     */
     @Override
     public AuthResponse authenticate(AuthContext authContext) throws AuthenticationException {
         if (log.isTraceEnabled()) {
@@ -84,28 +87,41 @@ public class BasicMqttClientAuthProvider implements MqttClientAuthProvider {
     }
 
     private MqttClientCredentials authWithBasicCredentials(String clientId, String username, byte[] passwordBytes) {
+        //"username|gexin"
+        //"client_id|pm-1704338112091"
+        //"mixed|gexin|pm-1704338112091"
         List<String> credentialIds = getCredentialIds(clientId, username);
+
+        //查询匹配到的记录集合
         List<MqttClientCredentials> matchingCredentialsList = clientCredentialsService.findMatchingCredentials(credentialIds);
         if (log.isDebugEnabled()) {
             log.debug("Found credentials {} for credentialIds {}", matchingCredentialsList, credentialIds);
         }
+
         String password = passwordBytesToString(passwordBytes);
         if (password != null) {
+            //使用密码的哈希值查询缓存
             MqttClientCredentials credentialsFromCache = getCache().get(toHashString(password), MqttClientCredentials.class);
+            //如果缓存命中，并且缓存中的数据与matchingCredentialsList集合中的匹配，说明可以找到记录。
             if (credentialsFromCache != null && matchingCredentialsList.contains(credentialsFromCache)) {
                 return credentialsFromCache;
             }
         }
 
         for (MqttClientCredentials credentials : matchingCredentialsList) {
+            //{"clientId":"pm-1704338112092","userName":"gexin","password":"$2a$10$oCLe1ZhEV1DVWf7KXflg6OrPI1N2Ch0ZbIcSv.zLIiDdqbnLDuNaq","authRules":{"pubAuthRulePatterns":[".*"],"subAuthRulePatterns":[".*"]}}
+            //把JSON格式转为实体类
             BasicMqttCredentials basicMqttCredentials = MqttClientCredentialsUtil.getMqttCredentials(credentials, BasicMqttCredentials.class);
             if (isMatchingPassword(password, basicMqttCredentials)) {
+                //如果密码匹配，则用密码哈希值当做key，然后存储到缓存中。
                 if (password != null && basicMqttCredentials.getPassword() != null) {
                     getCache().put(toHashString(password), credentials);
                 }
                 return credentials;
             }
         }
+
+        //都匹配不上，则返回空，说明认证失败。
         return null;
     }
 

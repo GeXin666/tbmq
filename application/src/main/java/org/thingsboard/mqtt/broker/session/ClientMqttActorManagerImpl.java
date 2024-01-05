@@ -47,6 +47,7 @@ public class ClientMqttActorManagerImpl implements ClientMqttActorManager {
 
     @Override
     public void initSession(String clientId, boolean isClientIdGenerated, SessionInitMsg sessionInitMsg) {
+        //获取ActorRef对象
         TbActorRef clientActorRef = getActor(clientId);
         if (clientActorRef == null) {
             clientActorRef = createRootActor(clientId, isClientIdGenerated);

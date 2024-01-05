@@ -34,6 +34,7 @@ public final class TbActorMailbox implements TbActorCtx {
     private static final boolean NORMAL_PRIORITY = false;
 
     private static final boolean FREE = false;
+
     private static final boolean BUSY = true;
 
     private static final boolean NOT_READY = false;
@@ -44,9 +45,15 @@ public final class TbActorMailbox implements TbActorCtx {
     private final TbActorId selfId;
     private final TbActorRef parentRef;
     private final TbActor actor;
+
+    //业务线程池
     private final Dispatcher dispatcher;
+
+    //高优先级消息队列
     private final ConcurrentLinkedQueue<TbActorMsg> highPriorityMsgs = new ConcurrentLinkedQueue<>();
+    //低优先级消息队列
     private final ConcurrentLinkedQueue<TbActorMsg> normalPriorityMsgs = new ConcurrentLinkedQueue<>();
+
     private final AtomicBoolean busy = new AtomicBoolean(FREE);
     private final AtomicBoolean ready = new AtomicBoolean(NOT_READY);
     private final AtomicBoolean destroyInProgress = new AtomicBoolean();
@@ -55,6 +62,7 @@ public final class TbActorMailbox implements TbActorCtx {
     private final boolean isDebugEnabled = log.isDebugEnabled();
 
     public void initActor() {
+        //初始化 --> 尝试启动
         dispatcher.getExecutor().execute(() -> tryInit(1));
     }
 
@@ -66,7 +74,9 @@ public final class TbActorMailbox implements TbActorCtx {
             if (!destroyInProgress.get()) {
                 actor.init(this);
                 if (!destroyInProgress.get()) {
+                    //设置为启动状态
                     ready.set(READY);
+                    //启动任务队列
                     tryProcessQueue(false);
                 }
             }
@@ -76,6 +86,7 @@ public final class TbActorMailbox implements TbActorCtx {
             }
             int attemptIdx = attempt + 1;
             InitFailureStrategy strategy = actor.onInitFailure(attempt, t);
+            //如果尝试策略返回暂停  或者 尝试错误次数大于限定值
             if (strategy.isStop() || (settings.getMaxActorInitAttempts() > 0 && attemptIdx > settings.getMaxActorInitAttempts())) {
                 log.info("[{}] Failed to init actor, attempt {}, going to stop attempts.", selfId, attempt, t);
                 system.stop(selfId);
@@ -84,34 +95,48 @@ public final class TbActorMailbox implements TbActorCtx {
                 if (log.isDebugEnabled()) {
                     log.debug("[{}] Error", selfId, t);
                 }
+                //延迟尝试启动
                 system.getScheduler().schedule(() -> dispatcher.getExecutor().execute(() -> tryInit(attemptIdx)), strategy.getRetryDelay(), TimeUnit.MILLISECONDS);
             } else {
                 log.info("[{}] Failed to init actor, attempt {}, going to retry immediately", selfId, attempt);
                 if (log.isDebugEnabled()) {
                     log.debug("[{}] Error", selfId, t);
                 }
+                //立即尝试启动
                 dispatcher.getExecutor().execute(() -> tryInit(attemptIdx));
             }
         }
     }
 
     private void enqueue(TbActorMsg msg, boolean highPriority) {
+        //如果已经关闭了,直接回调。
         if (destroyInProgress.get()) {
             msg.onTbActorStopped(selfId);
             return;
         }
+        //根据高低优先级投入到不同队列。
         if (highPriority) {
             highPriorityMsgs.add(msg);
         } else {
             normalPriorityMsgs.add(msg);
         }
+        //开始处理队列中消息。
         tryProcessQueue(true);
     }
 
+    /**
+     * 尝试处理队列中的消息
+     * @param newMsg 是否有新消息立即处理 </p>
+     *               newMsg：true 说明有新消息，立即启动处理逻辑</p>
+     *               newMsg：false 没有新消息，如果消息队列中有消息，则启动处理逻辑。
+     *
+     */
     private void tryProcessQueue(boolean newMsg) {
         if (ready.get() == READY) {
             if (newMsg || !highPriorityMsgs.isEmpty() || !normalPriorityMsgs.isEmpty()) {
+                //如果是FREE则设置为BUSY.设置成功了才开始处理消息.
                 if (busy.compareAndSet(FREE, BUSY)) {
+                    //处理消息
                     dispatcher.getExecutor().execute(this::processMailbox);
                 } else {
                     if (isTraceEnabled) {
@@ -130,9 +155,12 @@ public final class TbActorMailbox implements TbActorCtx {
         }
     }
 
+    //处理队列中的消息
     private void processMailbox() {
         boolean noMoreElements = false;
+        //处理一个批次的消息
         for (int i = 0; i < settings.getActorThroughput(); i++) {
+            //先高优先级 在低优先级
             TbActorMsg msg = highPriorityMsgs.poll();
             if (msg == null) {
                 msg = normalPriorityMsgs.poll();
@@ -142,6 +170,7 @@ public final class TbActorMailbox implements TbActorCtx {
                     if (isDebugEnabled) {
                         log.debug("[{}] Going to process message: {}", selfId, msg);
                     }
+                    //交给客户端去处理
                     actor.process(msg);
                 } catch (Throwable t) {
                     if (isDebugEnabled) {
@@ -153,14 +182,18 @@ public final class TbActorMailbox implements TbActorCtx {
                     }
                 }
             } else {
+                //队列中已经没有消息,暂停循环.
                 noMoreElements = true;
                 break;
             }
         }
         if (noMoreElements) {
+            //没有消息则设置FREE状态.
             busy.set(FREE);
+            //然后在处理一次消息队列.
             dispatcher.getExecutor().execute(() -> tryProcessQueue(false));
         } else {
+            //如果队列中还存在消息，则放入执行器等待下一轮任务调度.
             dispatcher.getExecutor().execute(this::processMailbox);
         }
     }
@@ -209,8 +242,10 @@ public final class TbActorMailbox implements TbActorCtx {
         destroyInProgress.set(true);
         dispatcher.getExecutor().execute(() -> {
             try {
+                //设置关闭状态.
                 ready.set(NOT_READY);
                 actor.destroy();
+                //队列中还未处理的消息，循环回调函数。
                 highPriorityMsgs.forEach(msg -> msg.onTbActorStopped(selfId));
                 normalPriorityMsgs.forEach(msg -> msg.onTbActorStopped(selfId));
             } catch (Throwable t) {

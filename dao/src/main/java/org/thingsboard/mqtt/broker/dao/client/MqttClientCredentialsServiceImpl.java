@@ -116,6 +116,12 @@ public class MqttClientCredentialsServiceImpl implements MqttClientCredentialsSe
 
         Cache cache = getCache(CacheConstants.MQTT_CLIENT_CREDENTIALS_CACHE);
         for (var credentialsId : credentialIds) {
+            /**
+             * "username|gexin"
+             * "client_id|pm-1704338112091"
+             * "mixed|gexin|pm-1704338112091"
+             * 在缓存中通过key去查询设备信息
+             */
             var clientCredentials = cache.get(credentialsId, MqttClientCredentials.class);
             if (clientCredentials != null) {
                 result.add(clientCredentials);
@@ -124,9 +130,11 @@ public class MqttClientCredentialsServiceImpl implements MqttClientCredentialsSe
             }
         }
 
+        //从数据中查询
         var clientCredentialsFromDb = mqttClientCredentialsDao.findAllByCredentialsIds(credentialIdsFromDb);
+        //放入缓存
         clientCredentialsFromDb.forEach(credentials -> cache.put(credentials.getCredentialsId(), credentials));
-
+        //返回结果
         result.addAll(clientCredentialsFromDb);
         return result;
     }

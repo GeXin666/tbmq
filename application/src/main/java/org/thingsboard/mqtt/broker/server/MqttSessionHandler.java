@@ -62,6 +62,8 @@ public class MqttSessionHandler extends ChannelInboundHandlerAdapter implements 
     private final ClientMqttActorManager clientMqttActorManager;
     private final ClientLogger clientLogger;
     private final RateLimitService rateLimitService;
+
+    //mqtt客户端channel
     private final ClientSessionCtx clientSessionCtx;
 
     //session-id
@@ -169,6 +171,7 @@ public class MqttSessionHandler extends ChannelInboundHandlerAdapter implements 
         }
     }
 
+    //处理发送消息
     private void processPublish(MqttMessage msg) {
         if (checkLimits(msg)) {
             clientMqttActorManager.processMqttMsg(clientId, NettyMqttConverter.createMqttPublishMsg(sessionId, (MqttPublishMessage) msg));
@@ -180,16 +183,24 @@ public class MqttSessionHandler extends ChannelInboundHandlerAdapter implements 
         }
     }
 
+    /**
+     * 检查客户端速率
+     * @param msg
+     */
     private boolean checkLimits(MqttMessage msg) {
         return rateLimitService.checkLimits(clientId, sessionId, msg);
     }
 
+    /**
+     * 初始化session
+     * @param connectMessage
+     */
     private void initSession(MqttConnectMessage connectMessage) {
         //mqtt客户端ID
         clientId = connectMessage.payload().clientIdentifier();
         boolean isClientIdGenerated = StringUtils.isEmpty(clientId);
         clientId = isClientIdGenerated ? generateClientId() : clientId;
-        //mqtt客户端版本
+        //mqtt客户端版本上下文
         clientSessionCtx.setMqttVersion(getMqttVersion(connectMessage));
         clientMqttActorManager.initSession(clientId, isClientIdGenerated, new SessionInitMsg(
                 //客户端上下文

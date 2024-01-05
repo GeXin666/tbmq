@@ -60,6 +60,7 @@ public class ActorProcessorImpl implements ActorProcessor {
         if (log.isTraceEnabled()) {
             log.trace("[{}] Processing SESSION_INIT_MSG onInit {}", state.getClientId(), sessionInitMsg);
         }
+
         ClientSessionCtx sessionCtx = sessionInitMsg.getClientSessionCtx();
 
         if (sessionCtx.getSessionId().equals(state.getCurrentSessionId())) {
@@ -67,7 +68,9 @@ public class ActorProcessorImpl implements ActorProcessor {
             return;
         }
 
+        //构建认证信息
         AuthContext authContext = buildAuthContext(state, sessionInitMsg);
+        //客户端认证
         AuthResponse authResponse = authenticateClient(authContext);
 
         if (!authResponse.isSuccess()) {

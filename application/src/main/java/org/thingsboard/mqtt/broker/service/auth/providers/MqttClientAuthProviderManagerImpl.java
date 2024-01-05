@@ -45,9 +45,11 @@ public class MqttClientAuthProviderManagerImpl implements MqttClientAuthProvider
         Map<AuthProviderType, MqttClientAuthProvider> tmpProvidersMap = new HashMap<>();
 
         if (basicAuthEnabled) {
+            //基于账号密码的认证
             tmpProvidersMap.put(AuthProviderType.BASIC, basicMqttClientAuthProvider);
         }
         if (sslAuthEnabled) {
+            //基于数字证书的认证
             tmpProvidersMap.put(AuthProviderType.X_509_CERTIFICATE_CHAIN, sslMqttClientAuthProvider);
         }
 

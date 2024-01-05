@@ -17,6 +17,9 @@ package org.thingsboard.mqtt.broker.actors;
 
 import org.thingsboard.mqtt.broker.actors.msg.TbActorMsg;
 
+/**
+ * 相当于mqtt客户端
+ */
 public interface TbActor {
 
     boolean process(TbActorMsg msg);
@@ -29,6 +32,11 @@ public interface TbActor {
     default void destroy() throws TbActorException {
     }
 
+    /**
+     * 返回出错尝试策略
+     * @param attempt 错误次数
+     * @return InitFailureStrategy 5000 * attempt 每次延迟时间递增
+     */
     default InitFailureStrategy onInitFailure(int attempt, Throwable t) {
         return InitFailureStrategy.retryWithDelay(5000 * attempt);
     }
