@@ -15,20 +15,21 @@
  */
 package org.thingsboard.mqtt.broker.server;
 
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.thingsboard.mqtt.broker.common.data.StringUtils;
 import org.thingsboard.mqtt.broker.ssl.config.SslCredentials;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.*;
+import java.io.FileInputStream;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
+
+import static io.netty.handler.ssl.SslProvider.JDK;
 
 @Slf4j
 public abstract class AbstractMqttHandlerProvider {
@@ -41,12 +42,27 @@ public abstract class AbstractMqttHandlerProvider {
         }
         SSLEngine sslEngine = sslContext.createSSLEngine();
         sslEngine.setUseClientMode(false);
-        sslEngine.setNeedClientAuth(false);
-        sslEngine.setWantClientAuth(true);
+        sslEngine.setNeedClientAuth(true);
+        //sslEngine.setWantClientAuth(false);
         sslEngine.setEnabledProtocols(sslEngine.getSupportedProtocols());
         sslEngine.setEnabledCipherSuites(sslEngine.getSupportedCipherSuites());
         sslEngine.setEnableSessionCreation(true);
         return new SslHandler(sslEngine);
+
+//        if(sslContext == null) {
+//            try {
+//                this.sslContext = SslContextBuilder.forServer(
+//                                new FileInputStream("D:\\certs\\server.crt"),
+//                                new FileInputStream("D:\\certs\\server.pkcs8.key"))
+//                        .clientAuth(ClientAuth.REQUIRE)
+//                        .sslProvider(JDK)
+//                        .trustManager(new FileInputStream("D:\\certs\\ca.crt")).build();
+//            } catch (Exception e) {
+//                throw new RuntimeException(e);
+//            }
+//        }
+//
+//        return sslContext.newHandler(ByteBufAllocator.DEFAULT);
     }
 
     private SSLContext createSslContext() {
@@ -121,6 +137,8 @@ public abstract class AbstractMqttHandlerProvider {
         public void checkClientTrusted(X509Certificate[] chain,
                                        String authType) throws CertificateException {
             // think if better to add credentials validation here
+            System.out.println("checkClientTrusted" + Arrays.toString(chain) + "authType:" + authType);
+            trustManager.checkClientTrusted(chain, authType);
         }
     }
 
